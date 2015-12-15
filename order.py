@@ -2,6 +2,7 @@ import requests
 import os
 import sys
 import time
+import wget
 
 # Try to get the key and secret from ENV
 UC_API_KEY = os.environ.get('UC_API_KEY')
@@ -42,6 +43,11 @@ def uc_create_order():
         print response
         error_and_quit("Could not create Order. Do you have access to this API?")
     return resp
+
+# Get an Order
+def uc_get_order(order_id):
+    response = uc_make_request('v1/ordering/orders/' + order_id)
+    return response.json()
 
 # Create a new Line Item
 def uc_create_line_item(order_id, scene_id):
@@ -132,10 +138,25 @@ print "Added line item for Scene ID " + scene_id + " to Order ID " + order_id + 
 purchase = uc_purchase_order(order_id)
 print "Purchased order " + order_id + ". Order is now in state " + purchase['payload'][0]['state'] + "."
 
-print "Beginning to poll for deliveries..."
-
-# Fifth, let's poll for deliveries from this new order
+# Fifth, let's poll for updates from this new order...
+print "Beginning to poll for order updates..."
 while(1):
     time.sleep(5)
-    deliveries = uc_get_deliveries_for_order(order_id)
-    print deliveries
+    order = uc_get_order(order_id)
+
+    if order['payload'][0]['state'] == 'processing':
+        sys.stdout.write('.')
+        sys.stdout.flush()
+    else:
+        print ""
+        print "Order state is now " + order['payload'][0]['state']
+        break
+
+# Sixth, and finally, get and download all of the Order Deliveries
+deliveries = uc_get_deliveries_for_order(order_id)
+for delivery in deliveries['payload']:
+    print "Delivery " + delivery['id'] + "is now ready."
+    print "URL for download: " + delivery['url']
+    print "Automatically Downloading..."
+    filename = wget.download(delivery['url'])
+    print "Download now available at " + filename
