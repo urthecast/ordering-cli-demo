@@ -30,9 +30,9 @@ python order.py SCENE_ID
 The script will proceed to:
 
 1. Create a new order
-2. Add the supplied scene ID as a line item to the order
+2. Add the supplied scene ID as a line item to the order (includes all datasets/bands)
 3. Purchase the order
-4. Poll the Delivery API until the download URL is present
+4. Poll the Delivery API until the download URL is available
 5. Download the scene to disk
 
 Errors will be printed to the console.
