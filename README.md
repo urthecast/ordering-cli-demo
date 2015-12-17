@@ -25,7 +25,7 @@ UC_API_HOST=
 
 Secondly, this tool requires Python 2.7 and the [PIP](https://pip.pypa.io/en/stable/installing/) python package manager. 
 
-Once installed, run:
+Once PIP is installed, run:
 
 ```
 pip install -r requirements.txt
@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 ## Usage
 
-To purchase a GeoTIFF image, call the script as follows:
+To purchase a GeoTIFF image with all possible datasets, call the script as follows:
 
 ```
 python order.py SCENE_ID
@@ -46,5 +46,7 @@ The script will proceed to:
 3. Purchase the order
 4. Poll the Delivery API until the download URL is available
 5. Download the scene to disk
+
+For more information about the Urthecast Ordering API, please [read the docs](https://developers.urthecast.com/docs/orders).
 
 Errors will be printed to the console.
