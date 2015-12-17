@@ -50,7 +50,7 @@ def uc_get_order(order_id):
     return response.json()
 
 # Create a new Line Item
-def uc_create_line_item(order_id, scene_id):
+def uc_create_line_item(order_id, scene_id, aoi_id = False):
     # NOTE: For now, all datasets for a sensor are always included.
     #       You can always specify a custom subset of datasets manually.
     line_item_url = 'v1/ordering/orders/' + order_id + '/line_items'
@@ -62,6 +62,10 @@ def uc_create_line_item(order_id, scene_id):
             'datasets': ','.join(datasets[scene_metadata['payload'][0]['sensor_platform']])
         }
     }
+
+    # If the user included an AOI ID, add it to the payload
+    if (aoi_id):
+        body['metadata']['geometry'] = aoi_id
 
     response = uc_make_post_request(line_item_url, body)
     return response.json()
@@ -80,7 +84,7 @@ def uc_purchase_order(order_id):
 # Get all of the outstanding deliveries for the order
 def uc_get_deliveries_for_order(order_id):
     deliveries_url = 'v1/ordering/deliveries'
-    response = uc_make_request(deliveries_url, { order_id: order_id })
+    response = uc_make_request(deliveries_url, { 'order_id': order_id })
     return response.json()
 
 # Helper method to make UC API requests
@@ -115,11 +119,16 @@ if UC_API_KEY == None or UC_API_SECRET == None:
     error_and_quit("Urthecast API key and secret required.\nPlease set the UC_API_KEY and UC_API_SECRET environment variables and try again.")
 
 # Validate the command line arguments
-if len(sys.argv) != 2:
-    error_and_quit("Please call this script with the Scene ID you wish to purchase and download as a GeoTIFF.")
+if len(sys.argv) != 2 and len(sys.argv) != 3:
+    error_and_quit("Please call this script with the Scene ID you wish to purchase and download as a GeoTIFF. Optionally, you may include an AOI ID which will crop the scene to that geometry.")
 
 # Save the scene ID we're going to be ordering and downloading
 scene_id = sys.argv[1]
+
+if len(sys.argv) == 3:
+    aoi_id = sys.argv[2]
+else:
+    aoi_id = False
 
 # First, let's confirm this scene exists and display some metadata:
 scene_metadata = uc_get_metadata(scene_id)
@@ -131,8 +140,11 @@ order_id = order['payload'][0]['id']
 print "Created a new order with ID " + order_id
 
 # Third, let's create a line item for the scene the user selected to the newly created order object
-line_item = uc_create_line_item(order_id, scene_id)
+line_item = uc_create_line_item(order_id, scene_id, aoi_id)
 print "Added line item for Scene ID " + scene_id + " to Order ID " + order_id + " (estimated cost: " + str(line_item['payload'][0]['estimated_cost']) + ")"
+
+if (aoi_id):
+    print "Scene will be cropped according to the geometry specified in AOI ID " + aoi_id
 
 # Fourth, let's purchase the order!
 purchase = uc_purchase_order(order_id)

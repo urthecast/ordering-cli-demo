@@ -39,10 +39,16 @@ To purchase a GeoTIFF image with all possible datasets, call the script as follo
 python order.py SCENE_ID
 ```
 
+If you wish to crop a scene to an existing [Area of Interest](https://developers.urthecast.com/docs/aois), call the script as follows:
+
+```
+python order.py SCENE_ID AOI_ID
+```
+
 The script will proceed to:
 
 1. Create a new order
-2. Add the supplied scene ID as a line item to the order (includes all datasets/bands)
+2. Add the supplied scene ID as a line item to the order (includes all datasets/bands, optionally cropping to AOI_ID)
 3. Purchase the order
 4. Poll the Delivery API until the download URL is available
 5. Download the scene to disk
