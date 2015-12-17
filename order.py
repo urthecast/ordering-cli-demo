@@ -59,7 +59,7 @@ def uc_create_line_item(order_id, scene_id, aoi_id = False):
         'type': 'scene',
         'metadata': {
             'scene_id': scene_id,
-            'datasets': ','.join(datasets[scene_metadata['payload'][0]['sensor_platform']])
+            'datasets': datasets[scene_metadata['payload'][0]['sensor_platform']]
         }
     }
 
