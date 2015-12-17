@@ -17,7 +17,19 @@ UC_API_KEY=123
 UC_API_SECRET=456
 ```
 
-Second, this tool requires Python 2.7 and the [Requests](http://docs.python-requests.org/) library. You may install this locally or globally using PIP.
+If you wish to use an environment besides production you may also set:
+
+```
+UC_API_HOST=
+```
+
+Secondly, this tool requires Python 2.7 and the [PIP](https://pip.pypa.io/en/stable/installing/) python package manager. 
+
+Once installed, run:
+
+```
+pip install -r requirements.txt
+```
 
 ## Usage
 
