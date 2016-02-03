@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import wget
+import json
 
 # Try to get the key and secret from ENV
 UC_API_KEY = os.environ.get('UC_API_KEY')
@@ -87,6 +88,17 @@ def uc_get_deliveries_for_order(order_id):
     response = uc_make_request(deliveries_url, { 'order_id': order_id })
     return response.json()
 
+# If an error is received during API request, dump some helpful debug data
+def api_request_error(url, response):
+    error  = "The following API request failed: \n"
+    error += "--------------------------------- \n"
+    error += url + "\n\n"
+    error += "The following response was received: \n"
+    error += "------------------------------------ \n"
+    error += json.dumps(response.json()) + "\n\n"
+    error += "Please contact platform@urthecast.com and reference request_id '" + response.json()['request_id'] + "' with any questions or concerns.\n"
+    error_and_quit(error)
+
 # Helper method to make UC API requests
 def uc_make_request(route, user_params = {}):
     default_params = {
@@ -100,6 +112,13 @@ def uc_make_request(route, user_params = {}):
     url = UC_API_HOST + route
 
     r = requests.get(url, params=params)
+
+    # If we got a 4xx or 5xx response, we need to generate an error
+    try:
+        r.raise_for_status()
+    except requests.exceptions.HTTPError:
+        api_request_error(url, r)
+
     return r
 
 # Helper method to make POST UC API requests
@@ -112,63 +131,76 @@ def uc_make_post_request(route, body = {}):
     url = UC_API_HOST + route
 
     r = requests.post(url, params=default_params, json=body, headers={'Content-Type': 'application/json'})
+
+    # If we got a 4xx or 5xx response, we need to generate an error
+    try:
+        r.raise_for_status()
+    except requests.exceptions.HTTPError:
+        api_request_error(url, r)
+
     return r
 
-# Confirm we have key and secret before we go any farther
-if UC_API_KEY == None or UC_API_SECRET == None:
-    error_and_quit("Urthecast API key and secret required.\nPlease set the UC_API_KEY and UC_API_SECRET environment variables and try again.")
+# Helper method to validate arugments passed to tool are valid
+def validate_arguments():
+    # Confirm we have key and secret before we go any farther
+    if UC_API_KEY == None or UC_API_SECRET == None:
+        error_and_quit("Urthecast API key and secret required.\nPlease set the UC_API_KEY and UC_API_SECRET environment variables and try again.")
 
-# Validate the command line arguments
-if len(sys.argv) != 2 and len(sys.argv) != 3:
-    error_and_quit("Please call this script with the Scene ID you wish to purchase and download as a GeoTIFF. Optionally, you may include an AOI ID which will crop the scene to that geometry.")
+    # Validate the command line arguments
+    if len(sys.argv) != 2 and len(sys.argv) != 3:
+        error_and_quit("Please call this script with the Scene ID you wish to purchase and download as a GeoTIFF. Optionally, you may include an AOI ID which will crop the scene to that geometry.")
 
-# Save the scene ID we're going to be ordering and downloading
-scene_id = sys.argv[1]
 
-if len(sys.argv) == 3:
-    aoi_id = sys.argv[2]
-else:
-    aoi_id = False
+if __name__ == '__main__':
+    validate_arguments()
 
-# First, let's confirm this scene exists and display some metadata:
-scene_metadata = uc_get_metadata(scene_id)
-print "Scene ID " + scene_id + " found. Captured by " + scene_metadata['payload'][0]['owner'] + " (" + scene_metadata['payload'][0]['sensor_platform'] + " sensor platform)"
+    # Save the scene ID we're going to be ordering and downloading
+    scene_id = sys.argv[1]
 
-# Second, let's create a new order object
-order = uc_create_order()
-order_id = order['payload'][0]['id']
-print "Created a new order with ID " + order_id
-
-# Third, let's create a line item for the scene the user selected to the newly created order object
-line_item = uc_create_line_item(order_id, scene_id, aoi_id)
-print "Added line item for Scene ID " + scene_id + " to Order ID " + order_id + " (estimated cost: " + str(line_item['payload'][0]['estimated_cost']) + ")"
-
-if (aoi_id):
-    print "Scene will be cropped according to the geometry specified in AOI ID " + aoi_id
-
-# Fourth, let's purchase the order!
-purchase = uc_purchase_order(order_id)
-print "Purchased order " + order_id + ". Order is now in state " + purchase['payload'][0]['state'] + "."
-
-# Fifth, let's poll for updates from this new order...
-print "Beginning to poll for order updates..."
-while(1):
-    time.sleep(5)
-    order = uc_get_order(order_id)
-
-    if order['payload'][0]['state'] == 'processing':
-        sys.stdout.write('.')
-        sys.stdout.flush()
+    if len(sys.argv) == 3:
+        aoi_id = sys.argv[2]
     else:
-        print ""
-        print "Order state is now " + order['payload'][0]['state']
-        break
+        aoi_id = False
 
-# Sixth, and finally, get and download all of the Order Deliveries
-deliveries = uc_get_deliveries_for_order(order_id)
-for delivery in deliveries['payload']:
-    print "Delivery " + delivery['id'] + "is now ready."
-    print "URL for download: " + delivery['url']
-    print "Automatically Downloading..."
-    filename = wget.download(delivery['url'])
-    print "Download now available at " + filename
+    # First, let's confirm this scene exists and display some metadata:
+    scene_metadata = uc_get_metadata(scene_id)
+    print "Scene ID " + scene_id + " found. Captured by " + scene_metadata['payload'][0]['owner'] + " (" + scene_metadata['payload'][0]['sensor_platform'] + " sensor platform)"
+
+    # Second, let's create a new order object
+    order = uc_create_order()
+    order_id = order['payload'][0]['id']
+    print "Created a new order with ID " + order_id
+
+    # Third, let's create a line item for the scene the user selected to the newly created order object
+    line_item = uc_create_line_item(order_id, scene_id, aoi_id)
+    print "Added line item for Scene ID " + scene_id + " to Order ID " + order_id + " (estimated cost: " + str(line_item['payload'][0]['estimated_cost']) + ")"
+
+    if (aoi_id):
+        print "Scene will be cropped according to the geometry specified in AOI ID " + aoi_id
+
+    # Fourth, let's purchase the order!
+    purchase = uc_purchase_order(order_id)
+    print "Purchased order " + order_id + ". Order is now in state " + purchase['payload'][0]['state'] + "."
+
+    # Fifth, let's poll for updates from this new order...
+    print "Beginning to poll for order updates..."
+    while(1):
+        time.sleep(5)
+        order = uc_get_order(order_id)
+
+        if order['payload'][0]['state'] == 'processing':
+            sys.stdout.write('.')
+            sys.stdout.flush()
+        else:
+            print ""
+            print "Order state is now " + order['payload'][0]['state']
+            break
+
+    # Sixth, and finally, get and download all of the Order Deliveries
+    deliveries = uc_get_deliveries_for_order(order_id)
+    for delivery in deliveries['payload']:
+        print "Delivery " + delivery['id'] + "is now ready."
+        print "URL for download: " + delivery['url']
+        print "Automatically Downloading..."
+        filename = wget.download(delivery['url'])
+        print "Download now available at " + filename

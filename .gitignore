@@ -1,3 +1,4 @@
 venv/
+*.pyc
 *.tar.gz
 .DS_Store

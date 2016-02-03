@@ -56,3 +56,11 @@ The script will proceed to:
 For more information about the Urthecast Ordering API, please [read the docs](https://developers.urthecast.com/docs/orders).
 
 Errors will be printed to the console.
+
+## Running tests
+
+If you wish to run the test suite:
+
+```
+python tests/order_tests.py
+```
