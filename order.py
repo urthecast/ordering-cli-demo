@@ -15,8 +15,9 @@ datasets = {
     'theia': ['red', 'green', 'blue', 'near-ir'],
     'landsat-8': ['red', 'green', 'blue', 'pan', 'near-ir', 'near-ir-2',
                   'short-wave-ir', 'short-wave-ir-2', 'long-wave-ir',
-                  'long-wave-ir-2'],
-    'deimos-1': ['red', 'green', 'near-ir']
+                  'long-wave-ir-2', 'coastal-blue'],
+    'deimos-1': ['red', 'green', 'near-ir'],
+    'deimos-2': ['red', 'green', 'blue', 'near-ir', 'pan']
 }
 
 # Generic error handling function
