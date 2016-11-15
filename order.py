@@ -17,7 +17,11 @@ datasets = {
                   'short-wave-ir', 'short-wave-ir-2', 'long-wave-ir',
                   'long-wave-ir-2', 'coastal-blue'],
     'deimos-1': ['red', 'green', 'near-ir'],
-    'deimos-2': ['red', 'green', 'blue', 'near-ir', 'pan']
+    'deimos-2': ['red', 'green', 'blue', 'near-ir', 'pan'],
+    'sentinel-2a': ['red', 'green', 'blue', 'near-ir', 'coastal-blue',
+                    'short-wave-ir', 'short-wave-ir-2', 'short-wave-ir-3',
+                    'red-edge', 'red-edge-2', 'red-edge-3', 'red-edge-4',
+                    'water-vapour'],
 }
 
 # Generic error handling function
