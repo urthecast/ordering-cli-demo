@@ -24,25 +24,30 @@ datasets = {
                     'water-vapour'],
 }
 
-# Generic error handling function
-def error_and_quit(message, exit_code = 1):
+
+def error_and_quit(message, exit_code=1):
+    """ Generic error handling function """
     print "------"
     print "ERROR!"
     print "------"
     print message
     sys.exit(exit_code)
 
-# Try to get the metadata for the scene
-# Throws an error and quits if the scene ID can't be found
+
 def uc_get_metadata(scene_id):
-    response = uc_make_request('v1/archive/scenes', { 'id': scene_id })
+    """
+    Try to get the metadata for the scene
+    Throws an error and quits if the scene ID can't be found
+    """
+    response = uc_make_request('v1/archive/scenes', {'id': scene_id})
     resp = response.json()
     if resp['meta']['total'] == 0:
         error_and_quit("Scene ID " + scene_id + " could not be found.")
     return resp
 
-# Create a new Order
+
 def uc_create_order():
+    """ Create a new Order """
     response = uc_make_post_request('v1/ordering/orders')
     resp = response.json()
     if response.status_code != 201:
@@ -50,110 +55,109 @@ def uc_create_order():
         error_and_quit("Could not create Order. Do you have access to this API?")
     return resp
 
-# Get an Order
+
 def uc_get_order(order_id):
+    """ Get an Order """
     response = uc_make_request('v1/ordering/orders/' + order_id)
     return response.json()
 
-# Create a new Line Item
-def uc_create_line_item(order_id, scene_id, aoi_id = False):
-    # NOTE: For now, all datasets for a sensor are always included.
-    #       You can always specify a custom subset of datasets manually.
+
+def uc_create_line_item(order_id, scene_id, aoi_id=False):
+    """ Create a new Line Item
+
+    NOTE: For now, all datasets for a sensor are always included.
+          You can always specify a custom subset of datasets manually.
+    """
     line_item_url = 'v1/ordering/orders/' + order_id + '/line_items'
-
-    body = {
-        'type': 'scene',
-        'metadata': {
-            'scene_id': scene_id,
-            'datasets': datasets[scene_metadata['payload'][0]['sensor_platform']]
-        }
-    }
-
+    body = {'type': 'scene',
+            'metadata': {'scene_id': scene_id,
+                         'datasets': datasets[scene_metadata['payload'][0]['sensor_platform']]
+                         }
+            }
     # If the user included an AOI ID, add it to the payload
     if (aoi_id):
         body['metadata']['geometry'] = aoi_id
-
     response = uc_make_post_request(line_item_url, body)
     return response.json()
 
-# Purchase an order
+
 def uc_purchase_order(order_id):
+    """ Purchase an order """
     purchase_url = 'v1/ordering/purchase'
-
-    body = {
-        'order_id': order_id
-    }
-
+    body = {'order_id': order_id}
     response = uc_make_post_request(purchase_url, body)
     return response.json()
 
-# Get all of the outstanding deliveries for the order
+
 def uc_get_deliveries_for_order(order_id):
+    """ Get all of the outstanding deliveries for the order """
     deliveries_url = 'v1/ordering/deliveries'
-    response = uc_make_request(deliveries_url, { 'order_id': order_id })
+    response = uc_make_request(deliveries_url, {'order_id': order_id})
     return response.json()
 
-# If an error is received during API request, dump some helpful debug data
+
 def api_request_error(url, response):
-    error  = "The following API request failed: \n"
-    error += "--------------------------------- \n"
-    error += url + "\n\n"
-    error += "The following response was received: \n"
-    error += "------------------------------------ \n"
-    error += json.dumps(response.json()) + "\n\n"
-    error += "Please contact platform@urthecast.com and reference request_id '" + response.json()['request_id'] + "' with any questions or concerns.\n"
+    # If an error is received during API request, dump some helpful debug data
+    error = '\n'.join(["The following API request failed:",
+                       "---------------------------------",
+                       url,
+                       '',
+                       '',
+                       "The following response was received:",
+                       "---------------------------------",
+                       json.dumps(response.json()),
+                       '',
+                       '',
+                       "Please contact platform@urthecast.com and reference request_id '",
+                       "\t\t" + response.json()['request_id'],
+                       "' with any questions or concerns."])
     error_and_quit(error)
 
-# Helper method to make UC API requests
-def uc_make_request(route, user_params = {}):
-    default_params = {
-        'api_key': UC_API_KEY,
-        'api_secret': UC_API_SECRET
-    }
 
+def uc_make_request(route, user_params={}):
+    """ Helper method to make UC API requests """
+    default_params = {'api_key': UC_API_KEY,
+                      'api_secret': UC_API_SECRET
+                      }
     params = default_params.copy()
     params.update(user_params)
-
     url = UC_API_HOST + route
-
     r = requests.get(url, params=params)
-
     # If we got a 4xx or 5xx response, we need to generate an error
     try:
         r.raise_for_status()
     except requests.exceptions.HTTPError:
         api_request_error(url, r)
-
     return r
 
-# Helper method to make POST UC API requests
-def uc_make_post_request(route, body = {}):
-    default_params = {
-        'api_key': UC_API_KEY,
-        'api_secret': UC_API_SECRET
-    }
 
+def uc_make_post_request(route, body={}):
+    """ Helper method to make POST UC API requests """
+    default_params = {'api_key': UC_API_KEY,
+                      'api_secret': UC_API_SECRET
+                      }
     url = UC_API_HOST + route
-
     r = requests.post(url, params=default_params, json=body, headers={'Content-Type': 'application/json'})
-
     # If we got a 4xx or 5xx response, we need to generate an error
     try:
         r.raise_for_status()
     except requests.exceptions.HTTPError:
         api_request_error(url, r)
-
     return r
 
-# Helper method to validate arugments passed to tool are valid
-def validate_arguments():
-    # Confirm we have key and secret before we go any farther
-    if UC_API_KEY == None or UC_API_SECRET == None:
-        error_and_quit("Urthecast API key and secret required.\nPlease set the UC_API_KEY and UC_API_SECRET environment variables and try again.")
 
+def validate_arguments():
+    """ Helper method to validate arugments passed to tool are valid """
+    # Confirm we have key and secret before we go any farther
+    if UC_API_KEY is None or UC_API_SECRET is None:
+        message = '\n'.join(["Urthecast API key and secret required.",
+                             "Please set the UC_API_KEY and UC_API_SECRET environment variables and try again."])
+        error_and_quit(message)
     # Validate the command line arguments
     if len(sys.argv) != 2 and len(sys.argv) != 3:
-        error_and_quit("Please call this script with the Scene ID you wish to purchase and download as a GeoTIFF. Optionally, you may include an AOI ID which will crop the scene to that geometry.")
+        message = '\n'.join(["Please call this script with the Scene ID you wish to purchase and download as a GeoTIFF.",
+                             "Optionally, you may include an AOI ID which will crop the scene to that geometry."])
+        error_and_quit(message)
 
 
 if __name__ == '__main__':
@@ -169,7 +173,9 @@ if __name__ == '__main__':
 
     # First, let's confirm this scene exists and display some metadata:
     scene_metadata = uc_get_metadata(scene_id)
-    print "Scene ID " + scene_id + " found. Captured by " + scene_metadata['payload'][0]['owner'] + " (" + scene_metadata['payload'][0]['sensor_platform'] + " sensor platform)"
+    print "Scene ID {0} found. Captured by {1} ({2} sensor platform)".format(scene_id,
+                                                                             scene_metadata['payload'][0]['owner'],
+                                                                             scene_metadata['payload'][0]['sensor_platform'])
 
     # Second, let's create a new order object
     order = uc_create_order()
@@ -178,7 +184,9 @@ if __name__ == '__main__':
 
     # Third, let's create a line item for the scene the user selected to the newly created order object
     line_item = uc_create_line_item(order_id, scene_id, aoi_id)
-    print "Added line item for Scene ID " + scene_id + " to Order ID " + order_id + " (estimated cost: " + str(line_item['payload'][0]['estimated_cost']) + ")"
+    print "Added line item for Scene ID {0} to Order ID {1} (estimated cost: {2})".format(scene_id,
+                                                                                          order_id,
+                                                                                          line_item['payload'][0]['estimated_cost'])
 
     if (aoi_id):
         print "Scene will be cropped according to the geometry specified in AOI ID " + aoi_id
